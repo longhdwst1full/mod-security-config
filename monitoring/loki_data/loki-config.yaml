@@ -1,0 +1,57 @@
+#loki-config.yaml
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+
+common:
+  path_prefix: /loki
+  ring:
+    kvstore:
+      store: memberlist
+  replication_factor: 1
+
+schema_config:
+  configs:
+    - from: "2024-01-01"
+      index:
+        period: 24h
+        prefix: index_
+      object_store: filesystem
+      schema: v13
+      store: tsdb
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /loki/index
+    cache_location: /loki/cache
+    shared_store: filesystem
+  filesystem:
+    directory: /loki/chunks
+
+ingester:
+  wal:
+    enabled: true
+    dir: /loki/wal
+
+query_scheduler:
+  max_outstanding_requests_per_tenant: 32768
+
+querier:
+  max_concurrent: 16
+
+analytics:
+  reporting_enabled: false
+
+memberlist:
+  join_members:
+    - "127.0.0.1"
+  abort_if_cluster_join_fails: false
+
+limits_config:
+  retention_period: 168h
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+  max_cache_freshness_per_query: 1m
