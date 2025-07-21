@@ -11,43 +11,63 @@ clients:
   - url: http://loki:3100/loki/api/v1/push # Đảm bảo đây là địa chỉ của Loki service trong Docker Compose
 
 scrape_configs:
-  - job_name: nginx-logs
+  - job_name: nginx_access_logs # Đổi tên job để rõ ràng hơn là log access của Nginx
     static_configs:
       - targets:
           - localhost
         labels:
-          job: nginx
-          __path__: /var/log/nginx/*.log # Đường dẫn log Nginx bên trong container Promtail
+          job: nginx_access_logs
+          instance: nginx-modsec-01 # Ví dụ: tên instance cụ thể
+          __path__: /var/log/nginx/*.log
+    pipeline_stages: # THÊM CÁC STAGE NÀY CHO LOG NGINX
+      - regex: # Phân tích cú pháp log Nginx định dạng 'combined'
+          # Điều chỉnh biểu thức regex này nếu định dạng log Nginx của bạn khác
+          expression: '^(?P<remote_addr>[^ ]+) - (?P<remote_user>[^ ]+) \[(?P<time_local>[^\]]+)\] "(?P<request_method>\S+) (?P<request_uri>\S+)(?: HTTP/\S+)?" (?P<status_code>\d{3}) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
+      - labels: # Thêm các trường trích xuất làm label
+          remote_addr:
+          request_method:
+          request_uri:
+          status_code:
+          http_referer:
+          http_user_agent:
+      - tenant: # Chuyển đổi body_bytes_sent sang kiểu số (float)
+          source: body_bytes_sent
+          target: body_bytes_sent_num
+          type: float
+      - labels: # Gán label số
+          body_bytes_sent: body_bytes_sent_num
+      - timestamp: # Parsing timestamp của Nginx log
+          source: time_local
+          format: "02/Jan/2006:15:04:05 -0700" # Định dạng GoLang cho "DD/Mon/YYYY:HH:MM:SS +ZZZZ"
   
-  - job_name: modsecurity_audit_log # Đổi tên job thành modsecurity_audit_log để rõ ràng hơn
+  - job_name: modsecurity_audit_log
     static_configs:
       - targets:
           - localhost
         labels:
-          job: modsecurity_audit_log # Tên job để truy vấn trong Grafana
-          __path__: /var/log/modsec/modsec_audit.json # ĐƯỜNG DẪN CHÍNH XÁC BÊN TRONG CONTAINER PROMTAL
-          # Đảm bảo Promtail đọc file .json cụ thể này
-    pipeline_stages: # PHẦN NÀY CỰC KỲ QUAN TRỌNG ĐỂ PHÂN TÍCH JSON
+          job: modsecurity_audit_log
+          instance: nginx-modsec-01 # Ví dụ: tên instance cụ thể
+          __path__: /var/log/modsec/modsec_audit.json
+    pipeline_stages:
       - json:
           expressions:
-            # Trường thông tin giao dịch cơ bản
             transaction_id: transaction.unique_id
             remote_addr: transaction.client_ip
             server_id: transaction.server_id
             client_port: transaction.client_port
             host_ip: transaction.host_ip
             host_port: transaction.host_port
-            # Trường thông tin yêu cầu (request)
             request_method: transaction.request.method
             http_version: transaction.request.http_version
             hostname: transaction.request.hostname
             request_uri: transaction.request.uri
             response_http_code: transaction.response.http_code
-            response_content_length: transaction.response.headers."Content-Length" # Lưu ý: Dấu ngoặc kép nếu tên header có dấu gạch ngang
-            response_content_type: transaction.response.headers."Content-Type"   # Lưu ý: Dấu ngoặc kép nếu tên header có dấu gạch ngang
+            response_content_length: transaction.response.headers."Content-Length"
+            response_content_type: transaction.response.headers."Content-Type"
             modsecurity_version: transaction.producer.modsecurity
             connector: transaction.producer.connector
             secrules_engine: transaction.producer.secrules_engine
+            # Để tránh lỗi nếu messages[0] không tồn tại, có thể cần thêm ctl:json.fail_on_missing=false
             first_message_text: transaction.messages[0].message
             first_message_match: transaction.messages[0].details.match
             first_message_rule_id: transaction.messages[0].details.ruleId
@@ -55,11 +75,10 @@ scrape_configs:
             first_message_line_number: transaction.messages[0].details.lineNumber
             first_message_data: transaction.messages[0].details.data
             first_message_severity: transaction.messages[0].details.severity
-
-      # - timestamp:
-      #     source: _time_stamp_raw
-      #     format: "Mon Jan _2 15:04:05 2006"
-
+            modsec_timestamp: transaction.time_stamp # Trích xuất timestamp của ModSecurity
+      - timestamp: # Sửa timestamp cho ModSecurity log
+          source: modsec_timestamp # Sử dụng trường đã trích xuất từ JSON
+          format: "02/Jan/2006:15:04:05 -0700" # Định dạng GoLang khớp với "DD/Mon/YYYY:HH:MM:SS +ZZZZ"
       - labels:
           transaction_id:
           remote_addr:
