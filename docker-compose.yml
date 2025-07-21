@@ -9,22 +9,40 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
+      # Đảm bảo các file cấu hình Nginx/ModSecurity được mount từ thư mục hiện tại
       - ./modsecurity.conf:/usr/local/nginx/conf/modsecurity.conf:ro
       - ./nginx.conf:/usr/local/nginx/conf/nginx.conf:ro
       - ./unicode.mapping:/usr/local/nginx/conf/unicode.mapping:ro
-      - ./logs:/var/log/modsec
+      - ./logs:/var/log/modsec # RẤT QUAN TRỌNG: Mount thư mục logs trên host vào container Nginx
     restart: unless-stopped
-  nodejs-modsec:
-    build:
-      context: .
-      dockerfile: Dockerfile.node
-    container_name: nodejs-mod-security
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
     ports:
-      - "30000:30000"
-    environment:
-      - TZ=Asia/Ho_Chi_Minh
+      - "3100:3100"
     volumes:
-      - ./logs:/app/build/logs
-    restart: unless-stopped
-    env_file:
-      - .env
+      - ./monitoring/loki_data:/loki # Đã chỉnh sửa: Đường dẫn tương đối từ thư mục gốc
+      - ./monitoring/loki_data/loki-config.yaml:/etc/loki/local-config.yaml # Đã chỉnh sửa
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail
+    volumes:
+      - ./monitoring/promtail-config.yaml:/etc/promtail/config.yaml # Đã chỉnh sửa: Đường dẫn tương đối từ thư mục gốc
+      - ./logs:/var/log/modsec:ro # Đã chỉnh sửa: Promtail cần đọc log từ thư mục logs cùng cấp
+      - /var/log/nginx:/var/log/nginx:ro # Giữ nguyên nếu bạn muốn đọc log Nginx access/error
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      - loki
+  
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - loki

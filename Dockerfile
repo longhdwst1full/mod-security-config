@@ -47,7 +47,7 @@ RUN wget http://nginx.org/download/nginx-1.24.0.tar.gz \
 
 # Copy config
 COPY nginx.conf /usr/local/nginx/conf/nginx.conf
-COPY index.html /usr/share/nginx/html/index.html
+# COPY index.html /usr/share/nginx/html/index.html
 COPY modsecurity.conf /usr/local/nginx/conf/modsecurity.conf
 COPY unicode.mapping /usr/local/nginx/conf/unicode.mapping
 COPY modsec-logrotate.conf /etc/logrotate.d/modsec

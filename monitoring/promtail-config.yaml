@@ -8,7 +8,7 @@ positions:
   filename: /tmp/positions.yaml
 
 clients:
-  - url: http://loki:3100/loki/api/v1/push
+  - url: http://loki:3100/loki/api/v1/push # Đảm bảo đây là địa chỉ của Loki service trong Docker Compose
 
 scrape_configs:
   - job_name: nginx-logs
@@ -17,12 +17,56 @@ scrape_configs:
           - localhost
         labels:
           job: nginx
-          __path__: /var/log/nginx/*.log
+          __path__: /var/log/nginx/*.log # Đường dẫn log Nginx bên trong container Promtail
   
-  - job_name: json-logs
+  - job_name: modsecurity_audit_log # Đổi tên job thành modsecurity_audit_log để rõ ràng hơn
     static_configs:
       - targets:
           - localhost
         labels:
-          job: json-logs
-          __path__: /logs/*.json
+          job: modsecurity_audit_log # Tên job để truy vấn trong Grafana
+          __path__: /var/log/modsec/modsec_audit.json # ĐƯỜNG DẪN CHÍNH XÁC BÊN TRONG CONTAINER PROMTAL
+          # Đảm bảo Promtail đọc file .json cụ thể này
+    pipeline_stages: # PHẦN NÀY CỰC KỲ QUAN TRỌNG ĐỂ PHÂN TÍCH JSON
+      - json:
+          expressions:
+            # Trường thông tin giao dịch cơ bản
+            transaction_id: transaction.unique_id
+            remote_addr: transaction.client_ip
+            server_id: transaction.server_id
+            client_port: transaction.client_port
+            host_ip: transaction.host_ip
+            host_port: transaction.host_port
+            # Trường thông tin yêu cầu (request)
+            request_method: transaction.request.method
+            http_version: transaction.request.http_version
+            hostname: transaction.request.hostname
+            request_uri: transaction.request.uri
+            response_http_code: transaction.response.http_code
+            response_content_length: transaction.response.headers."Content-Length" # Lưu ý: Dấu ngoặc kép nếu tên header có dấu gạch ngang
+            response_content_type: transaction.response.headers."Content-Type"   # Lưu ý: Dấu ngoặc kép nếu tên header có dấu gạch ngang
+            modsecurity_version: transaction.producer.modsecurity
+            connector: transaction.producer.connector
+            secrules_engine: transaction.producer.secrules_engine
+            first_message_text: transaction.messages[0].message
+            first_message_match: transaction.messages[0].details.match
+            first_message_rule_id: transaction.messages[0].details.ruleId
+            first_message_file: transaction.messages[0].details.file
+            first_message_line_number: transaction.messages[0].details.lineNumber
+            first_message_data: transaction.messages[0].details.data
+            first_message_severity: transaction.messages[0].details.severity
+
+      # - timestamp:
+      #     source: _time_stamp_raw
+      #     format: "Mon Jan _2 15:04:05 2006"
+
+      - labels:
+          transaction_id:
+          remote_addr:
+          request_method:
+          request_uri:
+          response_http_code:
+          modsecurity_version:
+          secrules_engine:
+          first_message_rule_id:
+          first_message_severity:

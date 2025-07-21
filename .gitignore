@@ -1,6 +1,0 @@
-logs
-nginx.conf
-node_modules
-src/logs
-build
-.env
