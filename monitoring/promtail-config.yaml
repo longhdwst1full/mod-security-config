@@ -36,17 +36,17 @@ scrape_configs:
           type: float
       - labels: # Gán label số
           body_bytes_sent: body_bytes_sent_num
-      - timestamp: # Parsing timestamp của Nginx log
+      - timestamp:
           source: time_local
-          format: "02/Jan/2006:15:04:05 -0700" # Định dạng GoLang cho "DD/Mon/YYYY:HH:MM:SS +ZZZZ"
-  
+          format: "02/Jan/2006:15:04:05 -0700"
+
   - job_name: modsecurity_audit_log
     static_configs:
       - targets:
           - localhost
         labels:
           job: modsecurity_audit_log
-          instance: nginx-modsec-01 # Ví dụ: tên instance cụ thể
+          instance: nginx-modsec-01 # THÊM LABEL NÀY
           __path__: /var/log/modsec/modsec_audit.json
     pipeline_stages:
       - json:
@@ -67,18 +67,17 @@ scrape_configs:
             modsecurity_version: transaction.producer.modsecurity
             connector: transaction.producer.connector
             secrules_engine: transaction.producer.secrules_engine
-            # Để tránh lỗi nếu messages[0] không tồn tại, có thể cần thêm ctl:json.fail_on_missing=false
-            first_message_text: transaction.messages[0].message
+            first_message_detail: transaction.messages[0].message
             first_message_match: transaction.messages[0].details.match
             first_message_rule_id: transaction.messages[0].details.ruleId
             first_message_file: transaction.messages[0].details.file
             first_message_line_number: transaction.messages[0].details.lineNumber
             first_message_data: transaction.messages[0].details.data
             first_message_severity: transaction.messages[0].details.severity
-            modsec_timestamp: transaction.time_stamp # Trích xuất timestamp của ModSecurity
-      - timestamp: # Sửa timestamp cho ModSecurity log
-          source: modsec_timestamp # Sử dụng trường đã trích xuất từ JSON
-          format: "02/Jan/2006:15:04:05 -0700" # Định dạng GoLang khớp với "DD/Mon/YYYY:HH:MM:SS +ZZZZ"
+            modsec_timestamp: transaction.time_stamp
+      - timestamp:
+          source: modsec_timestamp
+          format: "02/Jan/2006:15:04:05 -0700"
       - labels:
           transaction_id:
           remote_addr:
@@ -88,4 +87,9 @@ scrape_configs:
           modsecurity_version:
           secrules_engine:
           first_message_rule_id:
+          first_message_detail:
+          first_message_match:
+          first_message_file:
+          first_message_line_number:
+          first_message_data:
           first_message_severity:
