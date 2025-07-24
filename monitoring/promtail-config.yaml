@@ -1,27 +1,26 @@
-#promtail-config.yaml
+# promtail/config.yaml
 
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
 
 positions:
-  filename: /tmp/positions.yaml
+  filename: /tmp/promtail_data/positions.yaml # This path is inside the container, mounted from promtail_positions volume
 
 clients:
   - url: http://loki:3100/loki/api/v1/push # Đảm bảo đây là địa chỉ của Loki service trong Docker Compose
 
 scrape_configs:
-  - job_name: nginx_access_logs # Đổi tên job để rõ ràng hơn là log access của Nginx
+  - job_name: nginx_access_logs
     static_configs:
       - targets:
           - localhost
         labels:
           job: nginx_access_logs
-          instance: nginx-modsec-01 # Ví dụ: tên instance cụ thể
-          __path__: /var/log/nginx/*.log
-    pipeline_stages: # THÊM CÁC STAGE NÀY CHO LOG NGINX
-      - regex: # Phân tích cú pháp log Nginx định dạng 'combined'
-          # Điều chỉnh biểu thức regex này nếu định dạng log Nginx của bạn khác
+          instance: nginx-modsec-01
+          __path__: /var/log/nginx/*.log # This path refers to the mounted host path inside the container
+    pipeline_stages:
+      - regex:
           expression: '^(?P<remote_addr>[^ ]+) - (?P<remote_user>[^ ]+) \[(?P<time_local>[^\]]+)\] "(?P<request_method>\S+) (?P<request_uri>\S+)(?: HTTP/\S+)?" (?P<status_code>\d{3}) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
       - labels: # Thêm các trường trích xuất làm label
           remote_addr:
@@ -46,8 +45,8 @@ scrape_configs:
           - localhost
         labels:
           job: modsecurity_audit_log
-          instance: nginx-modsec-01 # THÊM LABEL NÀY
-          __path__: /var/log/modsec/modsec_audit.json
+          instance: nginx-modsec-01
+          __path__: /var/log/modsec/modsec_audit.json # This path refers to the mounted host path inside the container
     pipeline_stages:
       - json:
           expressions:
@@ -67,6 +66,7 @@ scrape_configs:
             modsecurity_version: transaction.producer.modsecurity
             connector: transaction.producer.connector
             secrules_engine: transaction.producer.secrules_engine
+            # Extracting the message from the first entry in the messages array
             first_message_detail: transaction.messages[0].message
             first_message_match: transaction.messages[0].details.match
             first_message_rule_id: transaction.messages[0].details.ruleId
@@ -77,7 +77,7 @@ scrape_configs:
             modsec_timestamp: transaction.time_stamp
       - timestamp:
           source: modsec_timestamp
-          format: "02/Jan/2006:15:04:05 -0700"
+          format: "02/Jan/2006:15:04:05 -0700" # Ensure this matches your ModSecurity log timestamp format
       - labels:
           transaction_id:
           remote_addr:
@@ -87,7 +87,7 @@ scrape_configs:
           modsecurity_version:
           secrules_engine:
           first_message_rule_id:
-          first_message_detail:
+          first_message_detail: # Make sure this label is also listed here
           first_message_match:
           first_message_file:
           first_message_line_number:
