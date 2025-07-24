@@ -1,4 +1,4 @@
-#loki-config.yaml
+# monitoring/loki_data/loki-config.yaml
 
 auth_enabled: false
 

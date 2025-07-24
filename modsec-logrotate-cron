@@ -1,2 +1,0 @@
-# Run logrotate for modsec at 00:00 every day
-0 0 * * * root /usr/sbin/logrotate -f /etc/logrotate.d/modsec >> /var/log/modsec/logrotate.log 2>&1

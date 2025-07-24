@@ -10,30 +10,25 @@ volumes:
   promtail_positions: {} # Volume để Promtail lưu trạng thái đọc log
 
 services:
-  nginx-modsec:
-    build: .
-    container_name: nginx-modsec
+  node-log-producer: # Dịch vụ Node.js để tạo log
+    build: ./node-file-log
+    container_name: node-log-producer-v2
+    # Nếu ứng dụng Node.js của bạn cần cổng để lắng nghe (ví dụ một API để nhận log), hãy thêm vào đây:
     ports:
-      - "5353:80"
+      - "3250:3250"
+    volumes:
+      # RẤT QUAN TRỌNG: Mount thư mục logs trên host vào container Node.js
+      # Đảm bảo ứng dụng Node.js của bạn ghi file modsec_audit.json vào /app/logs/modsec_audit.json
+      - ./logs:/logs # Mount thư mục 'logs' từ host vào '/app/logs' trong container Node.js
     environment:
       - TZ=Asia/Ho_Chi_Minh
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      # Đảm bảo các file cấu hình Nginx/ModSecurity được mount từ thư mục hiện tại
-      - ./modsecurity.conf:/usr/local/nginx/conf/modsecurity.conf:ro
-      - ./nginx.conf:/usr/local/nginx/conf/nginx.conf:ro
-      - ./unicode.mapping:/usr/local/nginx/conf/unicode.mapping:ro
-      # Đảm bảo Nginx ghi log vào thư mục này trên host, và Promtail sẽ đọc từ đó.
-      - ./logs:/var/log/modsec # ModSecurity audit logs
-      - ./logs/nginx:/var/log/nginx # Nginx access/error logs (nếu Nginx ghi ra đây)
     restart: unless-stopped
     networks:
-      - loki-grafana # Nginx-Modsec cũng cần trong cùng network để Promtail có thể tương tác với host.docker.internal nếu cần
+      - loki-grafana
 
   loki:
     image: grafana/loki:2.9.2
-    container_name: loki
+    container_name: loki-v2
     ports:
       - "3100:3100"
     volumes:
@@ -43,34 +38,36 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
     networks:
       - loki-grafana
+    restart: unless-stopped
 
   promtail:
     image: grafana/promtail:2.9.2
-    container_name: promtail
+    container_name: promtail-v2
     volumes:
       - ./monitoring/promtail-config.yaml:/etc/promtail/config.yaml:ro
-      - ./logs:/var/log/modsec:ro
-      - ./logs/nginx:/var/log/nginx:ro
-      # Đã sửa: Mount volume vào một THƯ MỤC, không phải FILE
-      - promtail_positions:/tmp/promtail_data:rw # Promtail sẽ lưu file positions.yaml bên trong thư mục này
+      # Promtail chỉ đọc log ModSecurity (từ Node.js) từ thư mục 'logs' được mount từ host
+      - ./logs:/var/log/modsec:ro # Promtail sẽ đọc modsec_audit.json từ đây
+      # Đã XÓA: Không còn mount /var/log/nginx nữa vì không có log Nginx
+      # Mount volume cho file positions.yaml để Promtail lưu trạng thái đọc log
+      - promtail_positions:/tmp/promtail_data:rw
     command: -config.file=/etc/promtail/config.yaml
     networks:
       - loki-grafana
     depends_on:
       - loki
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:10.2.3
-    container_name: grafana
+    container_name: grafana-v2
     ports:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-      # Nếu bạn muốn tự động cấu hình datasource Loki trong Grafana, thêm phần này:
-      # - ./grafana/provisioning:/etc/grafana/provisioning
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin # Đặt mật khẩu admin cho Grafana
     networks:
       - loki-grafana
     depends_on:
       - loki
+    restart: unless-stopped

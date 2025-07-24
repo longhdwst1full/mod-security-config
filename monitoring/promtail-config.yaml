@@ -1,52 +1,25 @@
-# promtail/config.yaml
+# monitoring/promtail-config.yaml
 
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
 
 positions:
-  filename: /tmp/promtail_data/positions.yaml # This path is inside the container, mounted from promtail_positions volume
+  filename: /tmp/promtail_data/positions.yaml # Đường dẫn này đã được sửa trong docker-compose.yml
 
 clients:
-  - url: http://loki:3100/loki/api/v1/push # Đảm bảo đây là địa chỉ của Loki service trong Docker Compose
+  - url: http://loki:3100/loki/api/v1/push # Loki is accessible via its service name 'loki' within the Docker network
 
 scrape_configs:
-  - job_name: nginx_access_logs
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: nginx_access_logs
-          instance: nginx-modsec-01
-          __path__: /var/log/nginx/*.log # This path refers to the mounted host path inside the container
-    pipeline_stages:
-      - regex:
-          expression: '^(?P<remote_addr>[^ ]+) - (?P<remote_user>[^ ]+) \[(?P<time_local>[^\]]+)\] "(?P<request_method>\S+) (?P<request_uri>\S+)(?: HTTP/\S+)?" (?P<status_code>\d{3}) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
-      - labels: # Thêm các trường trích xuất làm label
-          remote_addr:
-          request_method:
-          request_uri:
-          status_code:
-          http_referer:
-          http_user_agent:
-      - tenant: # Chuyển đổi body_bytes_sent sang kiểu số (float)
-          source: body_bytes_sent
-          target: body_bytes_sent_num
-          type: float
-      - labels: # Gán label số
-          body_bytes_sent: body_bytes_sent_num
-      - timestamp:
-          source: time_local
-          format: "02/Jan/2006:15:04:05 -0700"
-
+  # Chỉ còn cấu hình cho modsecurity_audit_log
   - job_name: modsecurity_audit_log
     static_configs:
       - targets:
           - localhost
         labels:
           job: modsecurity_audit_log
-          instance: nginx-modsec-01
-          __path__: /var/log/modsec/modsec_audit.json # This path refers to the mounted host path inside the container
+          instance: node-log-producer-01 # Có thể đổi instance name cho phù hợp với Node.js project
+          __path__: /var/log/modsec/modsec_audit.json # Promtail sẽ đọc từ file này trong mount volume
     pipeline_stages:
       - json:
           expressions:
@@ -66,7 +39,6 @@ scrape_configs:
             modsecurity_version: transaction.producer.modsecurity
             connector: transaction.producer.connector
             secrules_engine: transaction.producer.secrules_engine
-            # Extracting the message from the first entry in the messages array
             first_message_detail: transaction.messages[0].message
             first_message_match: transaction.messages[0].details.match
             first_message_rule_id: transaction.messages[0].details.ruleId
@@ -77,7 +49,7 @@ scrape_configs:
             modsec_timestamp: transaction.time_stamp
       - timestamp:
           source: modsec_timestamp
-          format: "02/Jan/2006:15:04:05 -0700" # Ensure this matches your ModSecurity log timestamp format
+          format: "02/Jan/2006:15:04:05 -0700"
       - labels:
           transaction_id:
           remote_addr:
@@ -87,7 +59,7 @@ scrape_configs:
           modsecurity_version:
           secrules_engine:
           first_message_rule_id:
-          first_message_detail: # Make sure this label is also listed here
+          first_message_detail:
           first_message_match:
           first_message_file:
           first_message_line_number:
