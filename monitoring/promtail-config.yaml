@@ -5,7 +5,7 @@ server:
   grpc_listen_port: 0
 
 positions:
-  filename: /tmp/promtail_data/positions.yaml # Đường dẫn này đã được sửa trong docker-compose.yml
+  filename: /tmp/promtail_data/positions.yaml # Đảm bảo thư mục /tmp/promtail_data tồn tại bên trong container
 
 clients:
   - url: http://loki:3100/loki/api/v1/push # Loki is accessible via its service name 'loki' within the Docker network
@@ -51,17 +51,15 @@ scrape_configs:
           source: modsec_timestamp
           format: "02/Jan/2006:15:04:05 -0700"
       - labels:
+          job:
+          instance:
           transaction_id:
           remote_addr:
           request_method:
           request_uri:
           response_http_code:
           modsecurity_version:
-          secrules_engine:
           first_message_rule_id:
           first_message_detail:
           first_message_match:
-          first_message_file:
-          first_message_line_number:
           first_message_data:
-          first_message_severity:

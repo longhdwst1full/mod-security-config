@@ -55,7 +55,10 @@ services:
       - loki-grafana
     depends_on:
       - loki
-    restart: unless-stopped
+    restart: unless-stopped # Đảm bảo Promtail luôn chạy lại nếu bị lỗi
+    # Cần set timezone cho Promtail để nó xử lý timestamp nhất quán
+    environment:
+      - TZ=Asia/Ho_Chi_Minh 
 
   grafana:
     image: grafana/grafana:10.2.3
@@ -66,8 +69,9 @@ services:
       - grafana_data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin # Đặt mật khẩu admin cho Grafana
+      - TZ=Asia/Ho_Chi_Minh # Đảm bảo Grafana hiển thị thời gian đúng múi giờ
     networks:
-      - loki-grafana
+      - loki-grafana # Lưu trữ dashboard và datasource
     depends_on:
       - loki
     restart: unless-stopped

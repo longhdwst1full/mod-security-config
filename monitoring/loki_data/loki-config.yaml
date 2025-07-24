@@ -29,7 +29,7 @@ storage_config:
     cache_location: /loki/cache
     shared_store: filesystem
   filesystem:
-    directory: /loki/chunks
+    directory: /loki/chunks # Nơi lưu trữ các chunk dữ liệu log
 
 ingester:
   wal:
