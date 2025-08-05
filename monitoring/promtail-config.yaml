@@ -19,7 +19,7 @@ scrape_configs:
         labels:
           job: modsecurity_audit_log
           instance: node-log-producer-01 # Có thể đổi instance name cho phù hợp với Node.js project
-          __path__: /var/log/modsec/modsec_audit.json # Promtail sẽ đọc từ file này trong mount volume
+          __path__: /var/log/modsec/*.json # Promtail sẽ đọc từ file này trong mount volume
     pipeline_stages:
       - json:
           expressions:
