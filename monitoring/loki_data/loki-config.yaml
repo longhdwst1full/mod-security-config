@@ -37,7 +37,7 @@ ingester:
     dir: /loki/wal
 
 query_scheduler:
-  max_outstanding_requests_per_tenant: 32768
+  max_outstanding_requests_per_tenant: 32768 # 32MB
 
 querier:
   max_concurrent: 16
@@ -51,7 +51,10 @@ memberlist:
   abort_if_cluster_join_fails: false
 
 limits_config:
-  retention_period: 168h
-  reject_old_samples: true
-  reject_old_samples_max_age: 168h
-  max_cache_freshness_per_query: 1m
+  ingestion_rate_mb: 1024  #  < 1GB/s
+  retention_period: 168h  #  thời gian tối đa của Loker chấp nhận các log cũ
+  reject_old_samples: true  # 7 days
+  reject_old_samples_max_age: 168h  # thời gian tối đa của Loker chấp nhận các log cũ
+  max_cache_freshness_per_query: 1m  # 1 minute
+  # max_streams_per_user: 10000  # đang comment
+  max_global_streams_per_user: 0  # không giới hạn

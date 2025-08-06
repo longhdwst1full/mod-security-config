@@ -22,6 +22,8 @@ services:
       - ./logs:/logs # Mount thư mục 'logs' từ host vào '/app/logs' trong container Node.js
     environment:
       - TZ=Asia/Ho_Chi_Minh
+    env_file:
+      - ./node-file-log/.env
     restart: unless-stopped
     networks:
       - loki-grafana

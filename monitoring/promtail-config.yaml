@@ -23,29 +23,29 @@ scrape_configs:
     pipeline_stages:
       - json:
           expressions:
-            transaction_id: transaction.unique_id
+            # transaction_id: transaction.unique_id
             remote_addr: transaction.client_ip
             server_id: transaction.server_id
             client_port: transaction.client_port
             host_ip: transaction.host_ip
             host_port: transaction.host_port
             request_method: transaction.request.method
-            http_version: transaction.request.http_version
+            # http_version: transaction.request.http_version
             hostname: transaction.request.hostname
             request_uri: transaction.request.uri
             response_http_code: transaction.response.http_code
-            response_content_length: transaction.response.headers."Content-Length"
-            response_content_type: transaction.response.headers."Content-Type"
-            modsecurity_version: transaction.producer.modsecurity
-            connector: transaction.producer.connector
-            secrules_engine: transaction.producer.secrules_engine
+            # response_content_length: transaction.response.headers."Content-Length"
+            # response_content_type: transaction.response.headers."Content-Type"
+            # modsecurity_version: transaction.producer.modsecurity
+            # connector: transaction.producer.connector
+            # secrules_engine: transaction.producer.secrules_engine
             first_message_detail: transaction.messages[0].message
             first_message_match: transaction.messages[0].details.match
             first_message_rule_id: transaction.messages[0].details.ruleId
             first_message_file: transaction.messages[0].details.file
-            first_message_line_number: transaction.messages[0].details.lineNumber
+            # first_message_line_number: transaction.messages[0].details.lineNumber
             first_message_data: transaction.messages[0].details.data
-            first_message_severity: transaction.messages[0].details.severity
+            # first_message_severity: transaction.messages[0].details.severity
             modsec_timestamp: transaction.time_stamp
       - timestamp:
           source: modsec_timestamp
@@ -53,12 +53,13 @@ scrape_configs:
       - labels:
           job:
           instance:
-          transaction_id:
+          hostname:
+          # transaction_id:
           remote_addr:
           request_method:
           request_uri:
           response_http_code:
-          modsecurity_version:
+          # modsecurity_version:
           first_message_rule_id:
           first_message_detail:
           first_message_match:
