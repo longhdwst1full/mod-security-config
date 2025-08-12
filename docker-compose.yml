@@ -24,7 +24,7 @@ services:
       - TZ=Asia/Ho_Chi_Minh
     env_file:
       - ./node-file-log/.env
-    restart: unless-stopped
+    restart: always
     networks:
       - loki-grafana
 
@@ -40,7 +40,7 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
     networks:
       - loki-grafana
-    restart: unless-stopped
+    restart: always
 
   promtail:
     image: grafana/promtail:2.9.2
@@ -57,7 +57,7 @@ services:
       - loki-grafana
     depends_on:
       - loki
-    restart: unless-stopped # Đảm bảo Promtail luôn chạy lại nếu bị lỗi
+    restart: always # Đảm bảo Promtail luôn chạy lại nếu bị lỗi
     # Cần set timezone cho Promtail để nó xử lý timestamp nhất quán
     environment:
       - TZ=Asia/Ho_Chi_Minh 
@@ -76,4 +76,4 @@ services:
       - loki-grafana # Lưu trữ dashboard và datasource
     depends_on:
       - loki
-    restart: unless-stopped
+    restart: always

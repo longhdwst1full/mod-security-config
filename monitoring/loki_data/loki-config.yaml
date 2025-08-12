@@ -27,17 +27,21 @@ storage_config:
   boltdb_shipper:
     active_index_directory: /loki/index
     cache_location: /loki/cache
+    cache_ttl: 24h
     shared_store: filesystem
   filesystem:
     directory: /loki/chunks # Nơi lưu trữ các chunk dữ liệu log
 
 ingester:
+  chunk_idle_period: 30m           # gom chunk lâu hơn để giảm số file chunk
+  max_chunk_age: 1h
+  chunk_target_size: 1572864       # ~1.5MB chunk size cho hiệu năng tốt
   wal:
     enabled: true
     dir: /loki/wal
 
 query_scheduler:
-  max_outstanding_requests_per_tenant: 32768 # 32MB
+  max_outstanding_requests_per_tenant: 8192 # 32MB số lượng tối đa các request truy vấn  đồng thời mà một tenant (người dùng hoặc khách hàng) có thể gửi và chưa được xử lý
 
 querier:
   max_concurrent: 16
@@ -52,9 +56,11 @@ memberlist:
 
 limits_config:
   ingestion_rate_mb: 1024  #  < 1GB/s
-  retention_period: 168h  #  thời gian tối đa của Loker chấp nhận các log cũ
-  reject_old_samples: true  # 7 days
-  reject_old_samples_max_age: 168h  # thời gian tối đa của Loker chấp nhận các log cũ
-  max_cache_freshness_per_query: 1m  # 1 minute
-  # max_streams_per_user: 10000  # đang comment
-  max_global_streams_per_user: 0  # không giới hạn
+  retention_period: 48h # 2 ngày = 2 * 24 = 1440 giờ
+  # max_entries_limit_per_query: 1000000
+  reject_old_samples: true
+  reject_old_samples_max_age: 48h # thời gian tối đa của Loker chấp nhận các log cũ
+  max_cache_freshness_per_query: 1m
+  max_streams_per_user: 15000           # giới hạn số stream người dùng
+  max_global_streams_per_user: 30000    # giới hạn tổng stream không quá cao
+  # max_global_streams_per_user: 0  # không giới hạn
