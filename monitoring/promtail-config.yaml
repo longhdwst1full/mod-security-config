@@ -19,7 +19,7 @@ scrape_configs:
         labels:
           job: modsecurity_audit_log
           instance: node-log-producer-01 # Có thể đổi instance name cho phù hợp với Node.js project
-          __path__: /var/log/modsec/*.json # Promtail sẽ đọc từ file này trong mount volume
+          __path__: /var/log/modsec/modsec_log.json # Promtail sẽ đọc từ file này trong mount volume
     pipeline_stages:
       - json:
           expressions:
@@ -64,3 +64,49 @@ scrape_configs:
           first_message_detail:
           first_message_match:
           first_message_data:
+  - job_name: system_metrics_log
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system_metrics_log
+          instance: system_metrics-01 
+          __path__: /var/log/modsec/system_metrics.json
+    pipeline_stages:
+      # Bước 1: Trích xuất các trường từ JSON
+      - json:
+          expressions:
+            name_server: "name_server"
+            cpu_info_str: "cpu_info"
+            active_ram_str: "active_ram"
+            free_ram_str: "free_ram"
+            total_ram_str: "total_ram"
+            avg_latency_str: "avg_latency"
+            cpu_info_total_ram: "cpu_info_total_ram"
+            
+      # Bước 2: Sử dụng regex để loại bỏ các đơn vị và chỉ giữ lại giá trị số
+      - regex:
+          source: cpu_info_str
+          expression: "(?P<cpu_value>[0-9.]+)"
+      - regex:
+          source: active_ram_str
+          expression: "(?P<active_ram_value>[0-9.]+)"
+      - regex:
+          source: free_ram_str
+          expression: "(?P<free_ram_value>[0-9.]+)"
+      - regex:
+          source: total_ram_str
+          expression: "(?P<total_ram_value>[0-9.]+)"
+      - regex:
+          source: avg_latency_str
+          expression: "(?P<avg_latency_value>[0-9.]+)"
+
+      # Bước 3: Gán các giá trị đã được làm sạch thành labels
+      - labels:
+          name_server:
+          cpu_value:
+          active_ram_value:
+          free_ram_value:
+          total_ram_value:
+          avg_latency_value:
+          cpu_info_total_ram:
