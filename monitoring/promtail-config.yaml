@@ -83,6 +83,11 @@ scrape_configs:
             total_ram_str: "total_ram"
             avg_latency_str: "avg_latency"
             cpu_info_total_ram: "cpu_info_total_ram"
+            status: "status"
+            blockedPerMin: "blockedPerMin"
+            requestsPerMin: "requestsPerMin"
+            serverName: "serverName"
+
             
       # Bước 2: Sử dụng regex để loại bỏ các đơn vị và chỉ giữ lại giá trị số
       - regex:
@@ -110,3 +115,26 @@ scrape_configs:
           total_ram_value:
           avg_latency_value:
           cpu_info_total_ram:
+          status:
+          blockedPerMin:
+          requestsPerMin:
+          serverName:
+  - job_name: firewall_traffic
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: firewall_traffic
+          __path__: /var/log/modsec/firewall.json
+    pipeline_stages:
+      - regex:
+          expression: 'date=(?P<date>[^\s]+) time=(?P<time>[^\s]+) eventtime=(?P<eventtime>[^\s]+) tz="(?P<tz>[^"]*)" logid="(?P<logid>[^"]*)" type="(?P<type>[^"]*)" subtype="(?P<subtype>[^"]*)" level="(?P<level>[^"]*)" vd="(?P<vd>[^"]*)" srcip=(?P<srcip>[^\s]+) srcport=(?P<srcport>[^\s]+) srcintf="(?P<srcintf>[^"]*)" srcintfrole="(?P<srcintfrole>[^"]*)" dstip=(?P<dstip>[^\s]+) dstport=(?P<dstport>[^\s]+) dstintf="(?P<dstintf>[^"]*)" dstintfrole="(?P<dstintfrole>[^"]*)" srccountry="(?P<srccountry>[^"]*)" dstcountry="(?P<dstcountry>[^"]*)" sessionid=(?P<sessionid>[^\s]+) proto=(?P<proto>[^\s]+) action="(?P<action>[^"]*)" policyid=(?P<policyid>[^\s]+) policytype="(?P<policytype>[^"]*)" poluuid="(?P<poluuid>[^"]*)" policyname="(?P<policyname>[^"]*)" service="(?P<service>[^"]*)" trandisp="(?P<trandisp>[^"]*)" appcat="(?P<appcat>[^"]*)" duration=(?P<duration>[^\s]+) sentbyte=(?P<sentbyte>[^\s]+) rcvdbyte=(?P<rcvdbyte>[^\s]+) sentpkt=(?P<sentpkt>[^\s]+) rcvdpkt=(?P<rcvdpkt>[^\s]+) mastersrcmac="(?P<mastersrcmac>[^"]*)" srcmac="(?P<srcmac>[^"]*)" srcserver=(?P<srcserver>[^\s]+) masterdstmac="(?P<masterdstmac>[^"]*)" dstmac="(?P<dstmac>[^"]*)" dstserver=(?P<dstserver>[^\s]+)'
+      - labels:
+          date:
+          time:
+          srcip:
+          srcport:
+          dstip:
+          dstport:
+          policyname:
+          action:
